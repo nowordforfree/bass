@@ -19,19 +19,15 @@
   #include <windows.h>
   #ifdef _WIN64
     #define BASS_PATH "./win/x64/bass.dll"
-    // #pragma comment(lib, "./win/x64/bass.dll")
   #else
     #define BASS_PATH "./win/bass.dll"
-    // #pragma comment(lib, "./win/bass.dll")
   #endif
 #elif __linux__
   #include <dlfcn.h>
   #if defined(__amd64__) || defined(__x86_64__)
     #define BASS_PATH "./linux/x64/libbass.so"
-    // #pragma comment(lib, "./linux/x64/libbass.so")
   #else
     #define BASS_PATH "./linux/libbass.so"
-    // #pragma comment(lib, "./linux/libbass.so")
   #endif
 #endif
 
@@ -39,13 +35,6 @@ class BASS {
   void *handl;
 public:
   BASS();
-  enum ChannelStatus
-  {
-    STOPPED,
-    PLAYING,
-    PAUSED,
-    STALLED
-  };
   template <typename T> T LoadFunction (const char *funcName);
   ~BASS();
 };
@@ -63,6 +52,7 @@ BASS::BASS ()
   handl = dlopen (BASS_PATH, RTLD_LAZY);
   if (!handl)
   {
+    std::cerr << "Failed to load library " << BASS_PATH << std::endl;
     std::cerr << dlerror() << std::endl;
     return;
   }
@@ -199,7 +189,7 @@ int main(int argc, char const *argv[])
     char stop;
     while (stop != 'q')
     {
-      std::cout << "Channel status: " << BASS::ChannelStatus(bChannelActive(stream)) << std::endl;
+      std::cout << "Channel status: " << bChannelActive(stream) << std::endl;
       std::cout << "Playing... Type \"q\" to stop" << std::endl;
       std::cin >> stop;
     }
@@ -214,3 +204,17 @@ int main(int argc, char const *argv[])
   std::cout << "Executed without errors!" << std::endl ;
   return 0;
 }
+
+// namespace bassplayer {
+    
+//     class Player : public node::ObjectWrap {
+//         public :
+        
+//     }
+
+//     void init(Local<Object> exports) {
+//         NODE_SET_METHOD(exports, "Player", Player);
+//     }
+
+//     NODE_MODULE(BASSPlayer, init);
+// }
