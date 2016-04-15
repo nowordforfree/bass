@@ -3,7 +3,8 @@
     {
       "target_name": "bassplayer",
       "sources": [
-        "main.cpp"
+        "addon.cc",
+        "player.cc"
       ]
     }
   ]
