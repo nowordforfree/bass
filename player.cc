@@ -1,22 +1,23 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include <string.h>
 #include "player.h"
 #include "bass.h"
 #ifdef _WIN32
-#include <windows.h>
-#ifdef _WIN64
-#define BASS_PATH "./win/x64/bass.dll"
-#else
-#define BASS_PATH "./win/bass.dll"
-#endif
+  #include <windows.h>
+  #ifdef _WIN64
+    #define BASS_PATH "./win/x64/bass.dll"
+  #else
+    #define BASS_PATH "./win/bass.dll"
+  #endif
 #elif __linux__
-#include <dlfcn.h>
-#if defined(__amd64__) || defined(__x86_64__)
-#define BASS_PATH "./linux/x64/libbass.so"
-#else
-#define BASS_PATH "./linux/libbass.so"
-#endif
+  #include <dlfcn.h>
+  #if defined(__amd64__) || defined(__x86_64__)
+    #define BASS_PATH "./linux/x64/libbass.so"
+  #else
+    #define BASS_PATH "./linux/libbass.so"
+  #endif
 #endif
 
 using namespace v8;
@@ -68,6 +69,14 @@ namespace bassplayer
 	typedef DWORD(*BASS_ChannelIsActive)(
 		DWORD handle
 		);
+	typedef BOOL (*BASS_ChannelGetInfo)(
+		DWORD handle,
+		BASS_CHANNELINFO *info
+		);
+	typedef char *(*BASS_ChannelGetTags)(
+		DWORD handle,
+		DWORD tags
+		);
 	//typedef BOOL(*BASS_Start)();
 	//typedef BOOL(*BASS_Pause)();
 	//typedef BOOL(*BASS_Stop)();
@@ -85,7 +94,6 @@ namespace bassplayer
 			return false;
 		}
 	}
-
 
 	BASSPlayer::BASSPlayer()
 	{
@@ -195,6 +203,8 @@ namespace bassplayer
 		BASS_ChannelIsActive bChannelIsActive = bass->LoadFunction<BASS_ChannelIsActive>("BASS_ChannelIsActive");
 		BASS_ChannelPlay bChannelPlay = bass->LoadFunction<BASS_ChannelPlay>("BASS_ChannelPlay");
 		BASS_ErrorGetCode bGetErrorCode = bass->LoadFunction<BASS_ErrorGetCode>("BASS_ErrorGetCode");
+		BASS_ChannelGetInfo bChannelGetInfo = bass->LoadFunction<BASS_ChannelGetInfo>("BASS_ChannelGetInfo");
+    BASS_ChannelGetTags bChannelGetTags = bass->LoadFunction<BASS_ChannelGetTags>("BASS_ChannelGetTags");
 
 		if (!args[0]->IsUndefined())
 		{
@@ -206,18 +216,20 @@ namespace bassplayer
 			filePath[str_filePath.size()] = '\0';
 			if (str_filePath.length() > 0)
 			{
-				if (bass->stream != NULL && bChannelIsActive(bass->stream) == BASS_ACTIVE_PLAYING)
+				if (bass->stream != 0 && bChannelIsActive(bass->stream) == BASS_ACTIVE_PLAYING)
 				{
 					bass->Stop(args);
 				}
-				bool isStreamRemote = FileExists(filePath);
-				if (isStreamRemote)
+				if (FileExists(filePath))
 				{
-					bass->stream = bStreamFile(FALSE, (void*)filePath, 0, 0, 0);
-				}
-				else
-				{
-					bass->stream = bStreamUrl(filePath, 0, BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE, 0, 0);
+          bass->stream = bStreamFile(FALSE, (void*)filePath, 0, 0, 0);
+        }
+        else
+        {
+          // Preprocess(filePath)
+          // if that is playlist file -
+          // parse into separate link and play each of them
+					bass->stream = bStreamUrl(filePath, 0, BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE, NULL, 0);
 				}
 				if (!bass->stream)
 				{
@@ -231,19 +243,37 @@ namespace bassplayer
 					);
 					return;
 				}
-				if (!bChannelPlay(bass->stream, FALSE))
-				{
-					std::cerr << "Error starting playback" << std::endl;
-					std::cerr << "Error code: " << bGetErrorCode() << std::endl;
-					args.GetReturnValue().Set(
-						String::NewFromUtf8(
-							isolate,
-							"Error starting playback"
-						)
-					);
-					return;
-				}
-				args.GetReturnValue().Set(String::NewFromUtf8(isolate, "Playing"));
+          
+        if (!bChannelPlay(bass->stream, FALSE))
+        {
+          std::cerr << "Error starting playback" << std::endl;
+          std::cerr << "Error code: " << bGetErrorCode() << std::endl;
+          args.GetReturnValue().Set(
+            String::NewFromUtf8(
+              isolate,
+              "Error starting playback"
+            )
+          );
+          return;
+        }
+
+        std::string message ("Playing");
+        BASS_CHANNELINFO info;
+        bChannelGetInfo(bass->stream, &info);
+        if (info.ctype == BASS_CTYPE_STREAM_MP3)
+        {
+          message.append(" mp3 stream.");
+        }
+        TAG_ID3 *tags = (TAG_ID3*)bChannelGetTags(bass->stream, BASS_TAG_ID3);
+        if (tags)
+        {
+          message += ' ' + tags->artist;
+          message.append(" - ");
+          message += tags->title;
+        }
+
+        delete [] filePath;
+				args.GetReturnValue().Set(String::NewFromUtf8(isolate, message.c_str()));
 			}
 			else
 			{
@@ -259,7 +289,7 @@ namespace bassplayer
 		}
 		else
 		{
-			if (bass->stream != NULL)
+			if (bass->stream != 0)
 			{
 				if (!bChannelPlay(bass->stream, FALSE))
 				{
@@ -283,7 +313,6 @@ namespace bassplayer
 				);
 			}
 		}
-
 	}
 	void BASSPlayer::Pause(const FunctionCallbackInfo<Value>& args)
 	{
@@ -328,6 +357,6 @@ namespace bassplayer
 				)
 			);
 		}
-		bass->stream = NULL;
+    bass->stream = 0;
 	}
 }
