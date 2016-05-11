@@ -1,7 +1,7 @@
 {
   'targets': [
     {
-      'target_name': 'addon',
+      'target_name': 'player',
       'sources': [
         'addon.cc',
         'player.cc'
@@ -21,7 +21,7 @@
           }
         }, {
           'link_settings': {
-            'libraries': ['-lbass'],
+            'libraries': ['-lbass','-lbassmidi','-lbassflac'],
             'ldflags': [
               '-L<@(libs)/<(target_arch)/',
               '-L<@(libs)/<(target_arch)/plugins/',

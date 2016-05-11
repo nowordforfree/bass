@@ -11,26 +11,25 @@
   #include <direct.h>
   #define GetCurrentDir _getcwd
   #ifdef _WIN64
-    std::string PluginsDir = std::string("win/x64/plugins/");
+    std::string PluginsDir("win/x64/plugins/");
   #else
-    std::string PluginsDir = std::string("win/ia32/plugins/");
+    std::string PluginsDir("win/ia32/plugins/");
   #endif
 #else
   #include <unistd.h>
   #define GetCurrentDir getcwd
   #ifdef __linux__
     #if defined(__amd64__) || defined(__x86_64__)
-      std::string PluginsDir = std::string("linux/x64/plugins/");
+      std::string PluginsDir("linux/x64/plugins/");
     #else
-      std::string PluginsDir = std::string("linux/ia32/plugins/");
+      std::string PluginsDir("linux/ia32/plugins/");
     #endif
   #elif defined __APPLE__
-    std::string PluginsDir = std::string("mac/plugins/");
+    std::string PluginsDir("mac/plugins/");
   #endif
 #endif
 
 using namespace v8;
-
 namespace bassplayer
 {
   bool FileExists(const char *fname)
@@ -76,31 +75,32 @@ namespace bassplayer
     BASS_SetConfig(BASS_CONFIG_NET_PLAYLIST, 2);
     BASS_SetConfig(BASS_CONFIG_NET_TIMEOUT, 30000);
     
-    std::stack<std::string> pluginFilesStack = listdirfiles(PluginsDir);
-    while (!pluginFilesStack.empty())
-    {
-      std::string pluginNameString = PluginsDir + pluginFilesStack.top();
-      char * pluginName = new char[pluginNameString.length() + 1];
-      std::copy(pluginNameString.begin(), pluginNameString.end(), pluginName);
-      pluginName[pluginNameString.size()] = '\0';
-      if (FileExists(pluginName))
-      {
-        std::cout << "File " << pluginName << " exists" << std::endl;
-      }
+    // std::stack<std::string> pluginFilesStack = listdirfiles(PluginsDir);
+    // while (!pluginFilesStack.empty())
+    // {
+    //   std::string pluginNameString(PluginsDir + pluginFilesStack.top());
+    //   // std::string pluginNameString(pluginFilesStack.top());
+    //   char * pluginName = new char[pluginNameString.length() + 1];
+    //   std::copy(pluginNameString.begin(), pluginNameString.end(), pluginName);
+    //   pluginName[pluginNameString.size()] = '\0';
+    //   if (FileExists(pluginName))
+    //   {
+    //     std::cout << "File " << pluginName << " exists" << std::endl;
+    //   }
 
-      std::cout << "Trying to load plugin " << pluginName << std::endl;
-      HPLUGIN pluginHandle = BASS_PluginLoad(pluginName, 0);
-      if (pluginHandle == 0)
-      {
-        std::cerr << "Error occured when loading plugin " << pluginName << std::endl;
-        std::cerr << "Error code: " << BASS_ErrorGetCode() << std::endl;
-      }
-      else
-      {
-        plugins.push(pluginHandle);
-      }
-      pluginFilesStack.pop();
-    }
+    //   std::cout << "Trying to load plugin " << pluginName << std::endl;
+    //   HPLUGIN pluginHandle = BASS_PluginLoad(pluginName, BASS_UNICODE);
+    //   if (pluginHandle == 0)
+    //   {
+    //     std::cerr << "Error occured when loading plugin " << pluginName << std::endl;
+    //     std::cerr << "Error code: " << BASS_ErrorGetCode() << std::endl;
+    //   }
+    //   else
+    //   {
+    //     plugins.push(pluginHandle);
+    //   }
+    //   pluginFilesStack.pop();
+    // }
   }
 
   BASSPlayer::~BASSPlayer()
