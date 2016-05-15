@@ -3,21 +3,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <stack>
-#include <dirent.h>
 #include "bass.h"
 #include "player.h"
 #ifdef _WIN32
-  #include <windows.h>
-  #include <direct.h>
-  #define GetCurrentDir _getcwd
   #ifdef _WIN64
-    std::string PluginsDir("win/x64/plugins/");
+	#include "win\\x64\\plugins\\bassflac.h"
+	#include "win\\x64\\plugins\\bassmidi.h"
+    std::string PluginsDir("win\\x64\\plugins\\");
   #else
-    std::string PluginsDir("win/ia32/plugins/");
+	#include "win\\ia32\\plugins\\bassflac.h"
+	#include "win\\ia32\\plugins\\bassmidi.h"
+    std::string PluginsDir("win\\ia32\\plugins\\");
   #endif
 #else
   #include <unistd.h>
-  #define GetCurrentDir getcwd
+  #include <dirent.h>
   #ifdef __linux__
     #if defined(__amd64__) || defined(__x86_64__)
       std::string PluginsDir("linux/x64/plugins/");
@@ -43,22 +43,56 @@ namespace bassplayer
     }
   }
 
-  std::stack<std::string> listdirfiles (std::string dir)
+  std::stack<std::string> listdirfiles (std::string path)
   {
-    DIR *dp;
-    struct dirent *dirp;
-    if((dp  = opendir(dir.c_str())) == NULL) {
-      std::cout << "Error(" << errno << ") opening " << dir << std::endl;
-      return std::stack<std::string>();
-    }
+	std::stack<std::string> files = std::stack<std::string>();
+    #ifdef _WIN32
+	  HANDLE dir;
+	  WIN32_FIND_DATA file_data;
 
-    std::stack<std::string> files = std::stack<std::string>();
-    while ((dirp = readdir(dp)) != NULL) {
-      if (dirp->d_name[0] != '.') {
-        files.push(std::string(dirp->d_name));
-      }
-    }
-    closedir(dp);
+	  if ((dir = FindFirstFile((path + "/*").c_str(), &file_data)) == INVALID_HANDLE_VALUE)
+		  return files;
+
+	  do {
+		  const std::string file_name = file_data.cFileName;
+		  const std::string full_file_name = path + "/" + file_name;
+		  const bool is_directory = (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+
+		  if (file_name[0] == '.')
+			  continue;
+
+		  if (is_directory)
+			  continue;
+
+		  files.push(full_file_name);
+	  } while (FindNextFile(dir, &file_data));
+
+	  FindClose(dir);
+    #else
+	  DIR *dir;
+	  class dirent *ent;
+	  class stat st;
+
+	  dir = opendir(path);
+	  while ((ent = readdir(dir)) != NULL) {
+		  const std::string file_name = ent->d_name;
+		  const std::string full_file_name = path + "/" + file_name;
+
+		  if (file_name[0] == '.')
+			  continue;
+
+		  if (stat(full_file_name.c_str(), &st) == -1)
+			  continue;
+
+		  const bool is_directory = (st.st_mode & S_IFDIR) != 0;
+
+		  if (is_directory)
+			  continue;
+
+		  files.push(full_file_name);
+	  }
+	  closedir(dir);
+    #endif
     return files;
   }
 

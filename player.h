@@ -1,9 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <stack>
 #include <node.h>
 #include <node_object_wrap.h>
+#include <stack>
 #include "bass.h"
 
 #ifdef __cplusplus

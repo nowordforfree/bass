@@ -11,5 +11,5 @@ namespace bassplayer
     BASSPlayer::Init(exports);
   }
 
-  NODE_MODULE(bassplayer, InitAll)
+  NODE_MODULE(player, InitAll)
 }

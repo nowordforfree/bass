@@ -19,7 +19,19 @@
               '-Wl,-rpath,<@(libs)'
             ]          
           }
-        }, {
+        }],
+		['OS == "win"', {
+          'link_settings': {
+            'libraries': [
+				'-l<@(libs)/<(target_arch)/bass',
+				'-l<@(libs)/<(target_arch)/plugins/bassmidi',
+				'-l<@(libs)/<(target_arch)/plugins/bassflac'],
+            'ldflags': [
+              '-Wl,-rpath,<@(libs)/<(target_arch)'
+            ]          
+          }
+        }],
+		['OS == "linux"', {
           'link_settings': {
             'libraries': ['-lbass','-lbassmidi','-lbassflac'],
             'ldflags': [
@@ -30,6 +42,15 @@
           }
         }]
       ]
-    }
+    },
+	{
+	  'target_name': 'copy_binary',
+	  'type':'none',
+	  'dependencies' : ['player'],
+	  'copies': [{
+	    'destination': '<(module_root_dir)/build/Release/',
+		'files': ['<(module_root_dir)/<(OS)/<(target_arch)/bass.dll']
+	  }]
+	}
   ]
 }
