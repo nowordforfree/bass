@@ -69,29 +69,19 @@ namespace bassplayer
 
 	  FindClose(dir);
     #else
-	  DIR *dir;
-	  class dirent *ent;
-	  class stat st;
-
-	  dir = opendir(path);
-	  while ((ent = readdir(dir)) != NULL) {
-		  const std::string file_name = ent->d_name;
-		  const std::string full_file_name = path + "/" + file_name;
-
-		  if (file_name[0] == '.')
-			  continue;
-
-		  if (stat(full_file_name.c_str(), &st) == -1)
-			  continue;
-
-		  const bool is_directory = (st.st_mode & S_IFDIR) != 0;
-
-		  if (is_directory)
-			  continue;
-
-		  files.push(full_file_name);
-	  }
-	  closedir(dir);
+	  DIR *dp;
+    struct dirent *dirp;
+    if((dp  = opendir(path.c_str())) == NULL) {
+      std::cerr << "Error(" << errno << ") opening " << path << std::endl;
+      return std::stack<std::string>();
+     }
+ 
+     while ((dirp = readdir(dp)) != NULL) {
+       if (dirp->d_name[0] != '.') {
+         files.push(std::string(dirp->d_name));
+       }
+     }
+     closedir(dp);
     #endif
     return files;
   }
