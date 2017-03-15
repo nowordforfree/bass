@@ -23,10 +23,10 @@ namespace bassplayer
 		static void Play(const v8::FunctionCallbackInfo<v8::Value> &args);
 		static void Pause(const v8::FunctionCallbackInfo<v8::Value>& args);
 		static void Stop(const v8::FunctionCallbackInfo<v8::Value>& args);
-    static v8::Persistent<v8::Function> constructor;
-    void *handl;
-    HSTREAM stream;
-    std::stack<HPLUGIN> plugins;
+		static v8::Persistent<v8::Function> constructor;
+		void *handl;
+		HSTREAM stream;
+		std::stack<HPLUGIN> plugins;
 	};
 }
 #ifdef __cplusplus

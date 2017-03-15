@@ -3,16 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stack>
-#include "bass.h"
 #include "player.h"
 #ifdef _WIN32
   #ifdef _WIN64
-	#include "win\\x64\\plugins\\bassflac.h"
-	#include "win\\x64\\plugins\\bassmidi.h"
     std::string PluginsDir("win\\x64\\plugins\\");
   #else
-	#include "win\\ia32\\plugins\\bassflac.h"
-	#include "win\\ia32\\plugins\\bassmidi.h"
     std::string PluginsDir("win\\ia32\\plugins\\");
   #endif
 #else
@@ -34,54 +29,62 @@ namespace bassplayer
 {
   bool FileExists(const char *fname)
   {
-    if (FILE *file = fopen(fname, "r")) {
+    if (FILE *file = fopen(fname, "r"))
+    {
       fclose(file);
       return true;
     }
-    else {
+    else
+    {
       return false;
     }
   }
 
   std::stack<std::string> listdirfiles (std::string path)
   {
-	std::stack<std::string> files = std::stack<std::string>();
+  	std::stack<std::string> files = std::stack<std::string>();
     #ifdef _WIN32
-	  HANDLE dir;
-	  WIN32_FIND_DATA file_data;
+      HANDLE dir;
+      WIN32_FIND_DATA file_data;
 
-	  if ((dir = FindFirstFile((path + "/*").c_str(), &file_data)) == INVALID_HANDLE_VALUE)
-		  return files;
+      if ((dir = FindFirstFile((path + "/*").c_str(), &file_data)) == INVALID_HANDLE_VALUE)
+        return files;
 
-	  do {
-		  const std::string file_name = file_data.cFileName;
-		  const std::string full_file_name = path + "/" + file_name;
-		  const bool is_directory = (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+      do
+      {
+        const std::string file_name = file_data.cFileName;
+        const std::string full_file_name = path + "/" + file_name;
+        const bool is_directory = (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 
-		  if (file_name[0] == '.')
-			  continue;
+        if (file_name[0] == '.')
+          continue;
 
-		  if (is_directory)
-			  continue;
+        if (is_directory)
+          continue;
 
-		  files.push(full_file_name);
-	  } while (FindNextFile(dir, &file_data));
+        files.push(full_file_name);
+      }
+      while (FindNextFile(dir, &file_data));
 
-	  FindClose(dir);
+      FindClose(dir);
     #else
-	  DIR *dp;
-    struct dirent *dirp;
-    if((dp  = opendir(path.c_str())) == NULL) {
-      std::cerr << "Error(" << errno << ") opening " << path << std::endl;
-      return std::stack<std::string>();
-     }
- 
-     while ((dirp = readdir(dp)) != NULL) {
-       if (dirp->d_name[0] != '.') {
-         files.push(std::string(dirp->d_name));
-       }
-     }
-     closedir(dp);
+      DIR *dp;
+      struct dirent *dirp;
+
+      if((dp = opendir(path.c_str())) == NULL)
+      {
+        std::cerr << "Error(" << errno << ") opening " << path << std::endl;
+        return files;
+      }
+
+      while ((dirp = readdir(dp)) != NULL)
+      {
+        if (dirp->d_name[0] != '.')
+        {
+          files.push(std::string(dirp->d_name));
+        }
+      }
+      closedir(dp);
     #endif
     return files;
   }
@@ -99,32 +102,28 @@ namespace bassplayer
     BASS_SetConfig(BASS_CONFIG_NET_PLAYLIST, 2);
     BASS_SetConfig(BASS_CONFIG_NET_TIMEOUT, 30000);
     
-    // std::stack<std::string> pluginFilesStack = listdirfiles(PluginsDir);
-    // while (!pluginFilesStack.empty())
-    // {
-    //   std::string pluginNameString(PluginsDir + pluginFilesStack.top());
-    //   // std::string pluginNameString(pluginFilesStack.top());
-    //   char * pluginName = new char[pluginNameString.length() + 1];
-    //   std::copy(pluginNameString.begin(), pluginNameString.end(), pluginName);
-    //   pluginName[pluginNameString.size()] = '\0';
-    //   if (FileExists(pluginName))
-    //   {
-    //     std::cout << "File " << pluginName << " exists" << std::endl;
-    //   }
+    std::stack<std::string> pluginFilesStack = listdirfiles(PluginsDir);
+    while (!pluginFilesStack.empty())
+    {
+      std::string pluginNameString(PluginsDir + pluginFilesStack.top());
+      if (FileExists(pluginNameString.c_str()))
+      {
+        std::cout << "File " << pluginNameString << " exists" << std::endl;
+      }
 
-    //   std::cout << "Trying to load plugin " << pluginName << std::endl;
-    //   HPLUGIN pluginHandle = BASS_PluginLoad(pluginName, BASS_UNICODE);
-    //   if (pluginHandle == 0)
-    //   {
-    //     std::cerr << "Error occured when loading plugin " << pluginName << std::endl;
-    //     std::cerr << "Error code: " << BASS_ErrorGetCode() << std::endl;
-    //   }
-    //   else
-    //   {
-    //     plugins.push(pluginHandle);
-    //   }
-    //   pluginFilesStack.pop();
-    // }
+      std::cout << "Trying to load plugin " << pluginNameString << std::endl;
+      HPLUGIN pluginHandle = BASS_PluginLoad(pluginNameString.c_str(), 0);
+      if (pluginHandle == 0)
+      {
+        std::cerr << "Error occured when loading plugin " << pluginNameString << std::endl;
+        std::cerr << "Error code: " << BASS_ErrorGetCode() << std::endl;
+      }
+      else
+      {
+        plugins.push(pluginHandle);
+      }
+      pluginFilesStack.pop();
+    }
   }
 
   BASSPlayer::~BASSPlayer()
